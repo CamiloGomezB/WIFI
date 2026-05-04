@@ -1,455 +1,278 @@
-# ESP32 WiFi Manager
+# 📡 Sistema IoT de Configuración Dinámica WiFi con ESP32
 
-**Solución IoT para configuración dinámica de red WiFi sin reprogramación**
+## 🧾 Descripción del Proyecto
 
----
+Este proyecto consiste en el diseño e implementación de una solución IoT basada en el microcontrolador ESP32 que permite la configuración dinámica de redes WiFi sin necesidad de reprogramación del dispositivo.
 
-## Descripción
-
-Sistema embebido para el microcontrolador ESP32 que permite al usuario final configurar dinámicamente las credenciales de red WiFi (SSID y contraseña) sin necesidad de reprogramar el dispositivo. Implementa un **portal cautivo** y una **API REST** local, con almacenamiento persistente en memoria NVS.
+El sistema implementa un mecanismo de autoconfiguración mediante un portal web accesible en modo punto de acceso (Access Point), permitiendo al usuario ingresar las credenciales de red de manera sencilla e intuitiva.
 
 ---
 
-## Características principales
+## 🎯 Objetivos
 
-- **Modo AP automático**: Inicia como Access Point si no hay credenciales guardadas
-- **Portal cautivo**: Redirige automáticamente al portal de configuración
-- **Interfaz web responsiva**: Compatible con móvil y escritorio
-- **API REST completa**: 6 endpoints documentados con respuestas JSON
-- **NVS (Non-Volatile Storage)**: Persistencia de credenciales en memoria flash
-- **Reconexión automática**: Intenta conectar con credenciales guardadas al arrancar
-- **Reset físico**: Botón hardware para borrar configuración
-- **LED de estado**: Indicadores visuales del estado del sistema
-- **Escaneo WiFi**: Lista redes disponibles ordenadas por señal
+### 🔹 Objetivo General
 
----
+Desarrollar un sistema IoT capaz de gestionar dinámicamente la conexión a redes WiFi mediante una interfaz web embebida en el ESP32.
 
-## Requisitos de hardware
+### 🔹 Objetivos Específicos
 
-| Componente | Especificación |
-|---|---|
-| Microcontrolador | ESP32 (cualquier variante con WiFi) |
-| LED de estado | GPIO 2 (built-in en la mayoría de placas) |
-| Botón de reset | GPIO 15 → GND (pull-up interno) |
-| Alimentación | 3.3V o 5V (según placa) |
-
-### Esquemático de conexiones
-
-```
-ESP32                    Componentes externos
-─────                    ───────────────────
-GPIO  2 ──[330Ω]─── LED ─── GND    (LED de estado)
-GPIO 15 ──────────── BTN ─── GND   (Botón de reset)
-3V3     ─────────────────────────  (alimentación)
-GND     ─────────────────────────  (tierra común)
-```
-
-> **Nota**: GPIO 2 y GPIO 0 ya tienen LEDs internos en la mayoría de placas de desarrollo ESP32. El botón en GPIO 15 usa pull-up interno del ESP32.
+* Implementar modo Access Point (AP) para configuración inicial
+* Diseñar una interfaz web para ingreso de credenciales
+* Almacenar credenciales en memoria no volátil
+* Garantizar reconexión automática
+* Proveer mecanismo de reinicio de configuración
+* Documentar el sistema siguiendo buenas prácticas de ingeniería
 
 ---
 
-## Dependencias
+## 👥 Integrantes del Proyecto
 
-Instalar desde el Arduino Library Manager (`Herramientas → Administrar bibliotecas`):
-
-| Biblioteca | Versión mínima | Fuente |
-|---|---|---|
-| ArduinoJson | >= 6.0.0 | Benoit Blanchon |
-| ESP32 Arduino Core | >= 2.0.0 | Espressif (gestor de placas) |
-
-Las siguientes están incluidas en el ESP32 Arduino Core:
-- `WiFi.h`
-- `WebServer.h`
-- `DNSServer.h`
-- `Preferences.h`
+* Juan Camilo Gómez Bayona
+* Daniel Sanchez Sotelo
+* Jeronimo Infante Vega
 
 ---
 
-## Instalación
+## 🧠 Arquitectura del Sistema
 
-### 1. Configurar Arduino IDE
+El sistema se compone de los siguientes módulos:
 
-```
-1. Abrir Arduino IDE
-2. Archivo → Preferencias
-3. URLs adicionales de gestor de placas:
-   https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
-4. Herramientas → Gestor de placas → buscar "esp32" → Instalar
-```
+* **Gestión de red (WiFi Manager)**
+* **Servidor web embebido**
+* **Módulo de almacenamiento (NVS - Preferences)**
+* **Interfaz de usuario (portal web)**
+* **Mecanismo de reset**
 
-### 2. Instalar dependencias
+### 🔄 Flujo de funcionamiento
 
-```
-Herramientas → Administrar bibliotecas → buscar "ArduinoJson" → Instalar versión >= 6.0.0
-```
+1. El ESP32 inicia
+2. Verifica credenciales almacenadas
+3. Si existen:
 
-### 3. Cargar el código
+   * Intenta conectarse a la red WiFi
+4. Si no existen o falla:
 
-```
-1. Abrir esp32_wifi_manager.ino
-2. Seleccionar placa: Herramientas → Placa → ESP32 Arduino → ESP32 Dev Module
-3. Seleccionar puerto COM correspondiente
-4. Verificar velocidad de subida: 921600 (recomendado)
-5. Clic en Subir
-```
+   * Inicia modo AP
+   * Levanta servidor web
+5. Usuario accede al portal
+6. Ingresa credenciales
+7. Se guardan en memoria
+8. El sistema se reinicia y conecta
 
 ---
 
-## Flujo de operación
+## ⚙️ Tecnologías Utilizadas
 
-### Primer arranque (sin credenciales)
+* Microcontrolador: ESP32
+* Framework: Arduino
+* Librerías principales:
 
+  * WiFi.h
+  * WebServer.h
+  * Preferences.h
+  * DNSServer.h
+
+---
+
+## 🌐 Endpoints Implementados
+
+### 🔹 GET /
+
+**Descripción:**
+Muestra la interfaz web para configuración de red.
+
+**Respuesta:**
+
+* Código: 200 OK
+* Tipo: text/html
+
+---
+
+### 🔹 POST /save
+
+**Descripción:**
+Guarda las credenciales WiFi ingresadas por el usuario.
+
+**Headers:**
+
+```id="a1b2c3"
+Content-Type: application/x-www-form-urlencoded
 ```
-┌─────────┐    ┌──────────────┐    ┌────────────────┐    ┌──────────────┐
-│  BOOT   │───▶│ Leer NVS     │───▶│ Sin creds →    │───▶│ Modo AP      │
-│         │    │ (credenciales│    │ Iniciar AP     │    │ SSID:        │
-│         │    │  guardadas?) │    │                │    │ ESP32-Config │
-└─────────┘    └──────────────┘    └────────────────┘    └──────┬───────┘
-                                                                  │
-                    ┌─────────────────────────────────────────────┘
-                    ▼
-            ┌──────────────┐    ┌────────────────┐    ┌──────────────┐
-            │ Usuario      │    │ Portal cautivo │    │ Guardar en   │
-            │ conecta a    │───▶│ 192.168.4.1    │───▶│ NVS →        │
-            │ ESP32-Config │    │ Ingresa SSID   │    │ Reiniciar    │
-            └──────────────┘    └────────────────┘    └──────────────┘
+
+**Body:**
+
+```id="d4e5f6"
+ssid=NombreRed&password=ClaveWiFi
 ```
 
-### Arranques subsiguientes (con credenciales)
+**Respuesta:**
 
-```
-┌─────────┐    ┌──────────────┐    ┌────────────────┐    ┌──────────────┐
-│  BOOT   │───▶│ Leer NVS     │───▶│ Credenciales   │───▶│ Conectar a   │
-│         │    │ (OK)         │    │ encontradas    │    │ WiFi (15s)   │
-└─────────┘    └──────────────┘    └────────────────┘    └──────┬───────┘
-                                                                  │
-                              ┌──────────────────────────────────▼──────┐
-                              │          ¿Conectó exitosamente?          │
-                              └───────────┬──────────────────────┬───────┘
-                                          │ SÍ                   │ NO
-                                          ▼                       ▼
-                                   ┌────────────┐         ┌────────────┐
-                                   │ Modo STA   │         │ Modo AP    │
-                                   │ IP asignada│         │ (fallback) │
-                                   └────────────┘         └────────────┘
+```id="g7h8i9"
+200 OK  
+Guardado. Reiniciando...
 ```
 
 ---
 
-## API REST
+## 💾 Almacenamiento de Datos
 
-### Base URL
+Se utiliza memoria no volátil (NVS) mediante la librería Preferences para almacenar:
 
-| Modo | URL base |
-|---|---|
-| Modo AP | `http://192.168.4.1` |
-| Modo STA | `http://{ip-asignada}` |
+* SSID
+* Contraseña
 
----
-
-### `GET /`
-
-**Descripción**: Sirve el portal HTML de configuración WiFi.
-
-**Headers de respuesta**:
-```
-Content-Type: text/html; charset=utf-8
-```
-
-**Respuesta**: Página HTML completa del portal cautivo.
+Esto permite conservar la configuración incluso después de reinicios o pérdida de energía.
 
 ---
 
-### `GET /api/status`
+## 🔄 Mecanismo de Reconexión
 
-**Descripción**: Retorna el estado actual de conectividad del dispositivo.
-
-**Headers de respuesta**:
-```
-Content-Type: application/json
-```
-
-**Respuesta exitosa (200)**:
-```json
-{
-  "wifi_connected": true,
-  "mode": "STA",
-  "ssid": "MiRedCasa",
-  "ip": "192.168.1.105",
-  "rssi": -62,
-  "channel": 6,
-  "mac": "AA:BB:CC:DD:EE:FF",
-  "state": "CONNECTED",
-  "uptime_ms": 45230
-}
-```
-
-**Campos de respuesta**:
-
-| Campo | Tipo | Descripción |
-|---|---|---|
-| `wifi_connected` | boolean | true si está conectado a una red |
-| `mode` | string | "STA" (cliente) o "AP" (access point) |
-| `ssid` | string | Nombre de la red conectada o AP |
-| `ip` | string | IP del dispositivo |
-| `rssi` | integer | Potencia de señal en dBm (solo modo STA) |
-| `channel` | integer | Canal WiFi (solo modo STA) |
-| `mac` | string | Dirección MAC |
-| `state` | string | Estado: INIT, AP_MODE, CONNECTING, CONNECTED, CONNECTION_FAILED |
-| `uptime_ms` | integer | Milisegundos desde el arranque |
+El sistema intenta conectarse automáticamente a la red configurada al iniciar.
+Se implementa un límite de intentos para evitar bloqueos.
 
 ---
 
-### `GET /api/scan`
+## 🔁 Mecanismo de Reset
 
-**Descripción**: Escanea y retorna las redes WiFi disponibles, ordenadas por intensidad de señal.
+Se incluye un método para borrar la configuración almacenada:
 
-**Headers de respuesta**:
-```
-Content-Type: application/json
-```
+### 🔹 Botón físico
 
-**Respuesta exitosa (200)**:
-```json
-{
-  "count": 3,
-  "networks": [
-    {
-      "ssid": "MiRedCasa",
-      "rssi": -45,
-      "encrypted": true,
-      "channel": 6
-    },
-    {
-      "ssid": "Vecino",
-      "rssi": -72,
-      "encrypted": true,
-      "channel": 11
-    },
-    {
-      "ssid": "RedAbierta",
-      "rssi": -80,
-      "encrypted": false,
-      "channel": 1
-    }
-  ]
-}
-```
+Al presionar el botón conectado al pin definido:
 
-**Campos de cada red**:
-
-| Campo | Tipo | Descripción |
-|---|---|---|
-| `ssid` | string | Nombre de la red |
-| `rssi` | integer | Potencia de señal (dBm). Valores: -30 excelente, -67 buena, -80 débil |
-| `encrypted` | boolean | true si requiere contraseña |
-| `channel` | integer | Canal WiFi (1-13) |
-
-> **Nota**: El escaneo puede tardar entre 2 y 5 segundos. Las redes con SSID duplicado se filtran automáticamente.
+* Se eliminan las credenciales
+* El dispositivo reinicia
+* Se activa el modo AP nuevamente
 
 ---
 
-### `POST /api/connect`
+## 🧪 Validación del Sistema
 
-**Descripción**: Recibe las credenciales WiFi, las guarda en NVS y tenta la conexión.
+El sistema fue validado mediante pruebas de prototipado:
 
-**Headers de solicitud**:
-```
-Content-Type: application/json
-```
+### ✔ Casos probados:
 
-**Body (JSON)**:
-```json
-{
-  "ssid": "MiRedCasa",
-  "password": "micontraseña123"
-}
-```
-
-**Parámetros del body**:
-
-| Campo | Tipo | Requerido | Descripción |
-|---|---|---|---|
-| `ssid` | string | ✅ Sí | Nombre de la red (1-32 caracteres) |
-| `password` | string | ⬜ No | Contraseña (vacía para redes abiertas) |
-
-**Respuesta exitosa (200)**:
-```json
-{
-  "success": true,
-  "message": "Credenciales guardadas. Conectando..."
-}
-```
-
-**Respuesta de error (400) - SSID faltante**:
-```json
-{
-  "success": false,
-  "message": "SSID requerido"
-}
-```
-
-**Respuesta de error (400) - SSID demasiado largo**:
-```json
-{
-  "success": false,
-  "message": "SSID demasiado largo (max 32 chars)"
-}
-```
-
-**Respuesta de error (400) - JSON inválido**:
-```json
-{
-  "success": false,
-  "message": "JSON inválido"
-}
-```
-
-> **Importante**: El endpoint responde con 200 antes de intentar la conexión (que puede tomar hasta 15 segundos). Para verificar si conectó exitosamente, consultar `/api/status` después de 15-20 segundos.
+* Configuración inicial sin credenciales
+* Conexión exitosa a red WiFi
+* Reconexión automática tras reinicio
+* Fallo de conexión → retorno a modo AP
+* Reset de configuración
 
 ---
 
-### `POST /api/reset`
+## 📬 Pruebas con Postman
 
-**Descripción**: Borra todas las credenciales guardadas en NVS y reinicia el dispositivo en modo Access Point.
+Se incluye colección Postman en:
 
-**Body**: No requerido (puede estar vacío).
-
-**Respuesta exitosa (200)**:
-```json
-{
-  "success": true,
-  "message": "Configuración borrada. Reiniciando en modo AP..."
-}
+```id="j1k2l3"
+/postman/collection.json
 ```
 
-> **Nota**: El dispositivo se reiniciará automáticamente 1 segundo después de esta respuesta. La conexión se perderá.
+### Ejemplo de prueba:
+
+* Método: POST
+* URL: http://192.168.4.1/save
+* Body: x-www-form-urlencoded
+
+| key      | value    |
+| -------- | -------- |
+| ssid     | MiRed    |
+| password | 12345678 |
 
 ---
 
-### `GET /api/info`
+## 📊 Diagramas
 
-**Descripción**: Retorna información detallada del hardware y software del dispositivo.
+Incluidos en la carpeta `/docs`:
 
-**Headers de respuesta**:
-```
-Content-Type: application/json
-```
-
-**Respuesta exitosa (200)**:
-```json
-{
-  "device": "ESP32",
-  "firmware": "WiFi Manager v2.0.0",
-  "chip_id": "ab12cd34",
-  "mac_address": "AA:BB:CC:DD:EE:FF",
-  "chip_model": "ESP32-D0WDQ6",
-  "chip_cores": 2,
-  "cpu_freq_mhz": 240,
-  "flash_size_kb": 4096,
-  "free_heap_b": 287432,
-  "uptime_ms": 120450,
-  "uptime_str": "0h 2m 0s",
-  "sdk_version": "v4.4.4"
-}
-```
+* Diagrama de secuencia
+* Diagrama de clases
+* Diagrama de componentes
+* Diagrama de despliegue
 
 ---
 
-## Indicadores LED
+## 📁 Estructura del Proyecto
 
-| Patrón | Estado |
-|---|---|
-| Parpadeo muy rápido (200ms) | Modo AP activo - esperando configuración |
-| Parpadeo medio (500ms) | Conectando a red WiFi |
-| Encendido fijo | Conectado exitosamente |
-| Parpadeo lento (1000ms) | Error de conexión |
-
----
-
-## Reset de configuración
-
-### Método 1: API REST
-
-```bash
-curl -X POST http://192.168.4.1/api/reset
-```
-
-### Método 2: Botón físico
-
-Mantener presionado el botón en GPIO 15 por **3 segundos**. El LED parpadeará rápidamente y el dispositivo se reiniciará.
-
-### Método 3: Desde el portal web
-
-En la interfaz HTML, clic en el botón **"Borrar configuración guardada"**.
-
----
-
-## Configuración de parámetros
-
-Los parámetros principales se pueden modificar en la sección de `#define` del archivo `.ino`:
-
-```cpp
-#define AP_SSID          "ESP32-Config"    // Nombre de la red AP
-#define AP_PASSWORD      "12345678"        // Contraseña del AP (min 8 chars)
-#define WIFI_CONNECT_TIMEOUT_MS  15000    // Timeout de conexión (ms)
-#define RESET_BUTTON_HOLD_MS     3000     // Tiempo de hold para reset (ms)
-#define PIN_LED_STATUS   2                // GPIO del LED de estado
-#define PIN_RESET_BUTTON 15              // GPIO del botón de reset
-```
-
----
-
-## Arquitectura del software
-
-```
-esp32_wifi_manager.ino
-├── setup()                    ← Inicialización del sistema
-│   ├── GPIO setup             ← LED y botón
-│   ├── NVS init               ← Preferences library
-│   ├── loadCredentials()      ← Lee NVS
-│   ├── connectToWiFi() / setupAP()
-│   └── setupWebServer()       ← Registra endpoints
+```id="m4n5o6"
+ESP32-WiFi-Config/
 │
-├── loop()                     ← Bucle principal
-│   ├── dnsServer.processNextRequest()   ← Portal cautivo
-│   ├── webServer.handleClient()         ← HTTP
-│   ├── updateLED()                      ← Indicador visual
-│   └── checkResetButton()               ← Reset por hardware
+├── src/
+│   └── main.ino
 │
-├── Handlers HTTP
-│   ├── handleRoot()           ← GET /
-│   ├── handleApiStatus()      ← GET /api/status
-│   ├── handleApiScan()        ← GET /api/scan
-│   ├── handleApiConnect()     ← POST /api/connect
-│   ├── handleApiReset()       ← POST /api/reset
-│   ├── handleApiInfo()        ← GET /api/info
-│   └── handleNotFound()       ← Redirección portal cautivo
+├── docs/
+│   ├── diagramas/
+│   └── arquitectura.md
 │
-└── Utilidades
-    ├── connectToWiFi()        ← Lógica de conexión WiFi
-    ├── loadCredentials()      ← Lectura NVS
-    ├── saveCredentials()      ← Escritura NVS
-    ├── clearCredentials()     ← Borrado NVS
-    ├── updateLED()            ← Control LED por estado
-    ├── checkResetButton()     ← Debounce y hold detection
-    └── getSystemUptime()      ← Formato de uptime
+├── postman/
+│   └── collection.json
+│
+├── README.md
 ```
 
 ---
 
-## Solución de problemas
+## 🛠️ Instalación y Uso
 
-| Problema | Causa probable | Solución |
-|---|---|---|
-| No aparece la red "ESP32-Config" | El ESP32 no arrancó en modo AP | Revisar alimentación; verificar si hay credenciales guardadas |
-| Portal no abre automáticamente | El SO no redirigió automáticamente | Navegar manualmente a `http://192.168.4.1` |
-| Fallo de conexión tras guardar | Contraseña incorrecta o señal débil | Verificar credenciales; acercar el ESP32 al router |
-| LED fijo sin estar conectado | Error en el código de estado | Verificar monitor serial a 115200 baud |
-| No compila | ArduinoJson no instalado | Instalar ArduinoJson >= 6.0.0 desde Library Manager |
+### 🔹 Requisitos
+
+* Arduino IDE
+* ESP32 Board instalado
+* Cable USB
+
+### 🔹 Pasos
+
+1. Clonar el repositorio
+2. Abrir el archivo `.ino`
+3. Seleccionar placa ESP32
+4. Subir el código
+
+### 🔹 Configuración inicial
+
+1. Conectarse a la red WiFi:
+
+```id="p7q8r9"
+ESP32_Config
+```
+
+2. Abrir navegador:
+
+```id="s1t2u3"
+http://192.168.4.1
+```
+
+3. Ingresar credenciales
 
 ---
 
-## Licencia
+## 📌 Buenas Prácticas Aplicadas
 
-MIT License — ver archivo [LICENSE](LICENSE) para detalles.
+* Separación de responsabilidades
+* Manejo de errores
+* Uso de memoria no volátil segura
+* Código modular y documentado
+* Interfaz simple y usable
+
+---
+
+## 🚀 Posibles Mejoras
+
+* Portal cautivo automático
+* Interfaz gráfica avanzada (Bootstrap)
+* Escaneo de redes WiFi
+* Seguridad (cifrado de credenciales)
+* Integración con servicios en la nube
+
+---
+
+## 🏫 Información Académica
+
+* Asignatura: IoT / Sistemas Embebidos
+* Institución: [Nombre de la universidad]
+* Año: 2026
+
+---
+
+## 📄 Licencia
+
+Este proyecto es de uso académico.
