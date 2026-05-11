@@ -144,7 +144,7 @@ El ESP32 inicia en modo AP y expone una interfaz web moderna accesible desde:
 
 ### Evidencia
 
-![Portal Web](Imagines/PaginaWebHttp.jpg)
+![Portal Web](Images/PaginaWebHttp.jpg)
 
 Características observadas:
 
@@ -162,7 +162,7 @@ Luego de configurar el SSID y contraseña, el ESP32 se conectó exitosamente al 
 
 ### Evidencia
 
-![Hotspot](Hotspot.jpg)
+![Hotspot](Images/Hotspot.jpg)
 
 La imagen demuestra:
 
@@ -182,7 +182,7 @@ Desde el monitor serial se verificó:
 
 ### Evidencia
 
-![Conexion WiFi](ConexionWifi.jpg)
+![Conexion WiFi](Images/ConexionWifi.png)
 
 Información obtenida:
 
@@ -204,7 +204,7 @@ Después de conectarse al hotspot:
 
 ### Evidencia
 
-![Nueva IP](IpNueva.jpeg)
+![Nueva IP](Images/IpNueva.jpeg)
 
 Esto demuestra:
 
