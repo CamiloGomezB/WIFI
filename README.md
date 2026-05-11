@@ -408,7 +408,7 @@ ESP32 -> Router WiFi: Reconexión automática
 Consumo aproximado:
 
 ```text
-~ 1.1 MB Flash
+~ 73%
 ```
 
 ---
@@ -418,7 +418,7 @@ Consumo aproximado:
 Consumo aproximado:
 
 ```text
-~ 1.3 MB Flash
+~ 77% 
 ```
 
 ---
