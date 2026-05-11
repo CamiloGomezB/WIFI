@@ -376,22 +376,74 @@ Reset OK
 
 # 11. Diagrama UML de Secuencia
 
+El siguiente diagrama UML representa el flujo completo de interacción entre el usuario, el portal web, el ESP32, el router/hotspot y la memoria persistente del sistema.
+
+El proceso incluye:
+
+- Inicio en modo AP.
+- Acceso al portal cautivo.
+- Escaneo de redes WiFi.
+- Envío de credenciales.
+- Conexión al hotspot.
+- Almacenamiento en memoria no volátil.
+- Reinicio automático.
+- Reconexión en modo STA.
+
+---
+
+## 11.1 Diagrama UML
+
+![Diagrama UML](Images/Uml.png)
+
+---
+
+## 11.2 Descripción del Flujo
+
 ```text
-Usuario -> ESP32: Conectarse a AP
-Usuario -> Portal Web: Abrir 192.168.4.1
-Portal Web -> ESP32: Solicitar redes
-ESP32 -> Portal Web: Lista de redes
-Usuario -> Portal Web: Enviar SSID y contraseña
-Portal Web -> ESP32: POST /connect
-ESP32 -> Router/Hotspot: Intentar conexión
-Router -> ESP32: Conexión exitosa
-ESP32 -> NVS: Guardar credenciales
-ESP32 -> ESP32: Reiniciar
-ESP32 -> Router: Reconexión automática
-ESP32 -> Usuario: Nueva IP disponible
+1. El usuario se conecta a la red ESP32_Setup.
+2. Accede al portal web mediante 192.168.4.1.
+3. El portal solicita las redes WiFi disponibles.
+4. El ESP32 realiza un escaneo de redes.
+5. Se devuelve una lista de SSID encontrados.
+6. El usuario selecciona una red e ingresa la contraseña.
+7. El portal envía un POST /connect.
+8. El ESP32 intenta conectarse al hotspot/router.
+9. Si la conexión es exitosa:
+   - se guardan las credenciales en memoria NVS.
+10. El ESP32 reinicia automáticamente.
+11. El dispositivo entra en modo STA.
+12. El router asigna una nueva IP dinámica.
+13. El usuario puede acceder nuevamente mediante la nueva IP.
 ```
 
 ---
+
+## 11.3 Componentes Representados
+
+| Componente | Función |
+|---|---|
+| Usuario | Configuración y administración |
+| Portal Web | Interfaz gráfica HTML/CSS/JS |
+| ESP32 | Lógica principal del sistema |
+| Router/Hotspot | Red WiFi externa |
+| Memoria NVS | Persistencia de credenciales |
+
+---
+
+## 11.4 Características del Diseño
+
+El diagrama evidencia las siguientes características de ingeniería implementadas:
+
+- Arquitectura modular.
+- Persistencia de datos.
+- Separación de responsabilidades.
+- Reconexión automática.
+- Interacción cliente-servidor.
+- Administración remota mediante HTTP.
+- Flujo IoT basado en eventos.
+
+---
+
 
 # 12. Comparación de Uso de Memoria Flash
 
@@ -545,3 +597,4 @@ Finalmente, la solución desarrollada puede aplicarse en proyectos IoT reales re
 - Random Nerd Tutorials
 - HTTP/1.1 RFC
 - ESP32 Preferences API
+- ChatGPT — OpenAI 
