@@ -144,7 +144,7 @@ El ESP32 inicia en modo AP y expone una interfaz web moderna accesible desde:
 
 ### Evidencia
 
-![Portal Web](PaginaWebHttp.jpg)
+![Portal Web](Imagines/PaginaWebHttp.jpg)
 
 Características observadas:
 
